@@ -67,46 +67,120 @@ public class CPU_Scheduling
 		return procInfo;
 	}
 
-	public static void roundRobin(Scanner input, PrintStream output, int[][] procInfo, int timeQuantum)
+	public static void roundRobin(PrintStream output, int[][] procInfo, int timeQuantum)
 	{
-		boolean[] procDone = new boolean[procInfo.length];
+		int[] procWait = new int[procInfo.length];
 		boolean allDone = false;
-		int procPointer = 0, timer = 0, numDone = 0;
+		int procPointer = 0, timer = 0, numDone = 0, totalWait = 0;
 		System.out.println("RR " + timeQuantum);
 		while(!allDone)
 		{
 			for (int proc = 0; proc < procInfo.length; proc++)
 			{
-				if (!procDone[proc] && procInfo[proc][1]<=timer)
+				if (!procInfo[proc][2]==0 && procInfo[proc][1]<=timer)
 				{
+					// Print out the time and the process which gets the CPU
 					System.out.printf("%d %d\n", timer, procInfo[proc][0]);
+					// Calculate the CPU burst
+					// burst = min(proc's remaining burst, timeQuantum)
 					int timeIncrement = (procInfo[proc][2] < timeQuantum) ? procInfo[proc][2]:timeQuantum;
+					// Increment the timer by the burst amount
 					timer += timeIncrement;
+					// Decrease process' remaining burst amount by the time increment
 					procInfo[proc][2] -= timeIncrement;
-					if (procInfo[proc][2]==0) 
+					for (int wait = 0; wait < procInfo.length; wait++)
 					{
-						procDone[proc] = true;
-						if(++numDone==procInfo.length) allDone = true;
+						// If the process doesn't have the CPU, increment its wait time
+						if (wait!=proc) procWait[wait]+=timeIncrement;
+					}
+					// If process is done and all other processes done, end the loop
+					if (procInfo[proc][2]==0 && ++numDone==procInfo.length) 
+					{
+						allDone = true;
 					}
 				}
 			}
 		}
+		// Calculate the total/average waiting time
+		for (int proc = 0; proc < procInfo.length; proc++)
+		{
+			totalWait+=procWait[proc];
+		}
+		System.out.printf("Average Wait: %.2f\n", (double)totalWait/(procWait.length));
 	}
 
-	public static void shortestJobFirst(Scanner input, PrintStream output, int[][] procInfo)
+	public static void shortestJobFirst(PrintStream output, int[][] procInfo)
+	{
+		int numDone = 0, timer = 0, currProc = 0, nextArrival = 0, timeIncrement = 0, totalWait = 0;
+		// Sort array of processes by arrival time
+		sort(procInfo, 1);
+		System.out.println("SJF");
+		// Increment the timer until a process arrives
+		while (procInfo[0][1]!=timer) timer++;
+		do
+		{
+			timeIncrement = 0;
+			// Cycle through arrived processes
+			for (int proc = 0; proc < procInfo.length && procInfo[proc][1]<=timer; proc++)
+			{
+				// If the process has a shorter burst than the current process, it becomes the current process
+				// Same is true if the current process is done (burst of 0)
+				if ((procInfo[currProc][2]>procInfo[proc][2] || procInfo[currProc][2]==0) && procInfo[proc][2]!=0)
+				{
+					currProc = proc;
+				}
+				if (proc>=nextArrival) nextArrival++;
+			}
+			// If all processes have arrived or the next arrival after the current time plus the currProc cpu burst, finish currProc
+			if (nextArrival==procInfo.length || (procInfo[currProc][2]+timer)<=procInfo[nextArrival][1])
+			{
+				timeIncrement = procInfo[currProc][2];
+				procInfo[currProc][2] = 0;
+				numDone++;
+			}
+			// Else the next arrival occurs before the end of the current processes' CPU burst triggering scheduling
+			// Or there is no process that needs CPU but another one is due to arrive
+			else{
+				timeIncrement = procInfo[nextArrival][1] - timer;
+				if (procInfo[currProc][2]!=0)  procInfo[currProc][2] -= timeIncrement;
+			}
+			timer += timeIncrement;
+			for (int waitingProc = 0; waitingProc<nextArrival; waitingProc++)
+			{
+				if (procInfo[waitingProc][2]!=0 && waitingProc!=currProc)
+				{
+					totalWait += timeIncrement;
+				}
+			}
+		}while (numDone!=procInfo.length);
+		System.out.printf("Average Wait: %.2f\n", (double)totalWait/(procInfo.length));
+		
+	}
+
+	public static void priorityNoPreempt(PrintStream output, int[][] procInfo)
 	{
 
 	}
 
-	public static void priorityNoPreempt(Scanner input, PrintStream output, int[][] procInfo)
+	public static void priorityWithPreempt(PrintStream output, int[][] procInfo)
 	{
 
 	}
-
-	public static void priorityWithPreempt(Scanner input, PrintStream output, int[][] procInfo)
+	
+	// Insertion sort
+	public static void sort(int[][] procInfo, int sortCategory)
 	{
-
+		for (int proc = 1; proc < procInfo.length; proc++)
+		{
+			int[] temp = procInfo[proc];
+			int j = proc;
+			while(j>0 && procInfo[j][sortCategory] < procInfo[j-1][sortCategory])
+			{
+				procInfo[j] = procInfo[j-1];
+				j--;
+			}
+			procInfo[j] = temp;
+		}
 	}
-
 
 }
