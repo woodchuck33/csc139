@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 public class CPU_Scheduling
 {
-	public static final String INPUT = "input.txt";
+	public static final String INPUT = "input16.txt";
 	public static final String OUTPUT = "output.txt";
 
 	public static void main(String[] args) throws FileNotFoundException
@@ -82,7 +82,7 @@ public class CPU_Scheduling
 			System.out.printf("%d %d\n", timer, readyQueue[0][0]);
 			// Calculate the CPU burst
 			// burst = min(proc's remaining burst, timeQuantum)
-			timeIncrement = (procInfo[0][2] < timeQuantum) ? procInfo[0][2]:timeQuantum;
+			timeIncrement = (readyQueue[0][2] < timeQuantum) ? readyQueue[0][2]:timeQuantum;
 			// Increment the timer by the burst amount
 			timer += timeIncrement;
 			// Decrease process' remaining burst amount by the time increment
@@ -222,7 +222,7 @@ public class CPU_Scheduling
 			for (int arriving = nextArrival; arriving < procInfo.length && procInfo[arriving][1]<=timer; arriving++)
 			{
 				readyQueue[readyQueuePointer++] = procInfo[arriving];
-				if (currProc!=-1 && procInfo[arriving][3]<readyQueue[currProc][3]) needDecision = true;
+				if (currProc==-1 || procInfo[arriving][3]<readyQueue[currProc][3]) needDecision = true;
 				nextArrival++;
 			}
 			// If a scheduling decision is needed
@@ -233,7 +233,7 @@ public class CPU_Scheduling
 				for (int proc = 1; proc < readyQueuePointer; proc++)
 				{
 					// Finding the active process with the highest priority (lowest number)
-					if (readyQueue[currProc][3]>readyQueue[proc][3])
+					if (readyQueue[currProc][3]>readyQueue[proc][3] || (readyQueue[currProc][2]==readyQueue[proc][2] && readyQueue[currProc][1]>readyQueue[proc][1]))
 					{
 						currProc = proc;
 					}
@@ -245,13 +245,14 @@ public class CPU_Scheduling
 			if (nextArrival==procInfo.length || (readyQueue[currProc][2]+timer)<=procInfo[nextArrival][1])
 			{
 				timeIncrement = readyQueue[currProc][2];
-				procInfo[currProc][2] = 0;
+				readyQueue[currProc][2] = 0;
 				numDone++;
 				// Swap the current process with the process at the end of the queue
 				readyQueue[currProc] = readyQueue[readyQueuePointer - 1];
 				// Current process was removed from the active queue, so the currProc pointer points to nothing
 				currProc = -1;
 				readyQueuePointer--;
+                needDecision = true;
 			}
 			// Else the next arrival occurs before the end of the current processes' CPU burst triggering scheduling
 			// Or there is no process that needs CPU but another one is due to arrive
@@ -283,8 +284,9 @@ public class CPU_Scheduling
 			{
 				procInfo[j] = procInfo[j-1];
 				j--;
+                procInfo[j] = temp;
 			}
-			procInfo[j] = temp;
+			
 		}
 	}
 
